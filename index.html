@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    <style>
+        table { border-collapse: collapse; margin-top: 16px; }
+        th, td { border: 1px solid #999; padding: 6px 10px; text-align: left; }
+        img { max-width: 100px; max-height: 100px; }
+        form input { display: block; margin-bottom: 8px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Products</h1>
+
+    <h2>Новий продукт</h2>
+    <form id="product_form">
+        <input id="name" placeholder="Назва" required>
+        <input id="description" placeholder="Опис" required>
+        <input id="price" type="number" min="0" step="any" placeholder="Ціна (ETH)" required>
+        <input id="image" placeholder="URL картинки" required>
+        <button type="submit">Створити</button>
+    </form>
+
+    <h2>Список</h2>
+    <table>
+        <thead>
+            <tr><th>Назва</th><th>Опис</th><th>Ціна (ETH)</th><th>Адреса акаунта</th><th>Дата створення</th><th>Картинка</th><th>Купити</th></tr>
+        </thead>
+        <tbody id="products"></tbody>
+    </table>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js"></script>
+    <script src="./products_abi.js"></script>
+    <script>
+        const contract_address = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+        const providerError = ()=>{
+            alert("Please install web3 provider.(Metamask https://metamask.io/)");
+        }
+
+        const load_products = async()=>{
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const contract = new ethers.Contract(contract_address, products_abi, provider);
+            const products = await contract.get_products();
+
+            const tbody = document.getElementById("products");
+            tbody.innerHTML = "";
+            for(let i = 0; i < products.length; i++){
+                const p = products[i];
+                const tr = document.createElement("tr");
+                const cells = [
+                    p.name,
+                    p.description,
+                    ethers.formatEther(p.price),
+                    p.creator,
+                    new Date(Number(p.createdAt) * 1000).toLocaleString()
+                ];
+                for(const text of cells){
+                    const td = document.createElement("td");
+                    td.textContent = text;
+                    tr.appendChild(td);
+                }
+                const imgTd = document.createElement("td");
+                const img = document.createElement("img");
+                img.src = p.imageUrl;
+                img.alt = p.name;
+                imgTd.appendChild(img);
+                tr.appendChild(imgTd);
+
+                const buyTd = document.createElement("td");
+                if(p.buyer !== ethers.ZeroAddress){
+                    buyTd.textContent = "Продано: " + p.buyer;
+                }else{
+                    const btn = document.createElement("button");
+                    btn.textContent = "Купити";
+                    btn.addEventListener('click', ()=>buy_product(i, p.price));
+                    buyTd.appendChild(btn);
+                }
+                tr.appendChild(buyTd);
+                tbody.appendChild(tr);
+            }
+        }
+
+        const buy_product = async(id, price)=>{
+            if(!window.ethereum) return providerError();
+
+            try{
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = await provider.getSigner();
+                const contract = new ethers.Contract(contract_address, products_abi, signer);
+
+                const tx = await contract.buy_product(id, {value: price});
+                await tx.wait();
+                await load_products();
+            }catch(err){
+                alert(err.reason || err.shortMessage || err.message);
+            }
+        }
+
+        const create_product = async(e)=>{
+            e.preventDefault();
+            if(!window.ethereum) return providerError();
+
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(contract_address, products_abi, signer);
+
+            const tx = await contract.create_product(
+                document.getElementById("name").value,
+                document.getElementById("description").value,
+                ethers.parseEther(document.getElementById("price").value),
+                document.getElementById("image").value
+            );
+            await tx.wait();
+
+            e.target.reset();
+            await load_products();
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            document.getElementById("product_form").addEventListener('submit', create_product);
+            if(!window.ethereum) return providerError();
+            load_products();
+        });
+    </script>
+</body>
+</html>
