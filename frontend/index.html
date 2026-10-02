@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web3 forum</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="topbar">
+        <h1 hidden id="account_lbl"></h1>
+        <button id="connection_btn">Connect</button>
+    </div>
+
+    <div hidden id="dapp">
+        <div class="composer">
+            <textarea id="post_text" placeholder="What's on your mind?"></textarea>
+            <div class="composer-actions">
+                <button id="makePost_btn">Make post</button>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <button class="secondary" id="showAll_btn">All posts</button>
+            <button class="secondary" id="showMine_btn">My posts</button>
+            <input type="text" id="author_filter_input" placeholder="Filter by author address (0x...)">
+            <button class="secondary" id="filterByAuthor_btn">Filter</button>
+            <button class="danger" hidden id="deleteAll_btn">Delete all posts</button>
+        </div>
+
+        <p id="filter_status"></p>
+
+        <div id="postList"></div>
+    </div>
+    <script src=" https://cdn.jsdelivr.net/npm/web3@4.16.0/dist/web3.min.js "></script>
+    <script src="./contract_abi.js"></script>
+    <script src="./index.js"></script>
+</body>
+</html>
